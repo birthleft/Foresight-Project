@@ -1,6 +1,6 @@
 // Get all environment variables available
-const dotenv = require("dotenv")
-dotenv.config()
+const dotenv = require('dotenv');
+dotenv.config();
 
 // Require the necessary discord.js classes
 const { Client, Events, GatewayIntentBits } = require('discord.js');
