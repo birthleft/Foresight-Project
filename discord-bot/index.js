@@ -4,11 +4,30 @@ const fs = require('node:fs');
 // Import Node's native path utility module, helping construct paths to access files and directories.
 const path = require('node:path');
 
-// Require the necessary discord.js classes
+// Import the Sequelize module, used to connect to the database.
+const sequelize = require('./config/database.js');
+
+// Import all Sequelize models.
+const Workspace = require('./models/workplace.js');
+
+// Import the Colors module, used to color console output.
+const Colors = require('colors');
+
+// Syncronize the models.
+Workspace.syncForced();
+
+// Require the necessary DiscordJS classes
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// Authetificate to the database.
+sequelize.authenticate().then(() => {
+    console.log('[INFO] Connection to the database has been established successfully.');
+}).catch((error) => {
+    console.error('[ERROR] Unable to connect to the database: ', error);
+});
 
 // Initiate DiscordJS's Collection class, used to store and efficiently retrieve commands for execution.
 client.commands = new Collection();
@@ -21,7 +40,7 @@ for (const file of commandFiles) {
 	if ('data' in command && 'execute' in command) {
 		client.commands.set(command.data.name, command);
 	} else {
-		console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+		console.log(Colors.yellow(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`));
 	}
 }
 
