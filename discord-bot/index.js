@@ -8,13 +8,18 @@ const path = require('node:path');
 const sequelize = require('./config/database.js');
 
 // Import all Sequelize models.
-const Workspace = require('./models/workplace.js');
+const Network = require('./models/database/network.js');
+Network.initialize(sequelize);
+
+const Node = require('./models/database/node.js');
+Node.initialize(sequelize);
 
 // Import the Colors module, used to color console output.
 const Colors = require('colors');
 
 // Syncronize the models.
-Workspace.syncForced();
+Network.syncForced();
+Node.syncForced();
 
 // Require the necessary DiscordJS classes
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
