@@ -30,28 +30,25 @@ module.exports = {
             freezeTableName: true,
         });
     },
-    insert: (previousHash, data) => {
-        const currentBlock = Ledger.create(
+    insert: async (previousHash, data) => {
+        const currentBlock = Ledger.build(
             {
-                data: data,
+                data: JSON.stringify(data),
                 previous: previousHash,
             }
-        ).then(() => {
-            Ledger.update(
-                {
-                    hash: SHA256(currentBlock.index + currentBlock.timestamp + currentBlock.previous + JSON.stringify(currentBlock.data)).toString(),
-                },
-                {
-                    where: {
-                        index: currentBlock.index
-                    }
-                }
-            ).then(() => {
-                console.log('[INFO] Inserted a new row into the \'Ledger\' table.');
-                return currentBlock.hash;
-            })
+        );
+
+        currentBlock.hash = SHA256(currentBlock.index + currentBlock.timestamp + currentBlock.previous + JSON.stringify(currentBlock.data)).toString();
+        
+        return currentBlock.save().then(() => {
+            console.log('[INFO] [1/5] Added a new Entry into the \'Ledger\' table.');
+            console.log('[INFO] [2/5] Data: ', data);
+            console.log('[INFO] [3/5] Previous Hash: ', previousHash);
+            console.log('[INFO] [4/5] Current Hash: ', currentBlock.hash);
+            console.log('[INFO] [5/5] Current Index: ', currentBlock.index);
+            return currentBlock.hash;
         }).catch((error) => {
-            console.error('[ERROR] Unable to insert a new row into the \'Ledger\' table: ', error);
+            console.error('[ERROR] Unable to add a new Entry into the \'Ledger\' table: ', error);
             return null;
         });
     },
@@ -69,24 +66,24 @@ module.exports = {
         });
     },
     sync: () => {
-        Projects.sync().then(() => {
-            console.log('[INFO] Syncronized the \'Projects\' table.');
+        Ledger.sync().then(() => {
+            console.log('[INFO] Syncronized the \'Ledger\' table.');
         }).catch((error) => {
-            console.error('[ERROR] Unable to syncronize the \'Projects\' table: ', error);
+            console.error('[ERROR] Unable to syncronize the \'Ledger\' table: ', error);
         });
     },
     syncForced: () => {
-        Projects.sync({ force: true }).then(() => {
-            console.log('[INFO] Successfully reset the \'Projects\' table.');
+        Ledger.sync({ force: true }).then(() => {
+            console.log('[INFO] Successfully reset the \'Ledger\' table.');
         }).catch((error) => {
-            console.error('[ERROR] Unable to reset the \'Projects\' table: ', error);
+            console.error('[ERROR] Unable to reset the \'Ledger\' table: ', error);
         });;
     },
     syncAltered: () => {
-        Projects.sync({ alter: true }).then(() => {
-            console.log('[INFO] Altered the \'Projects\' table.');
+        Ledger.sync({ alter: true }).then(() => {
+            console.log('[INFO] Altered the \'Ledger\' table.');
         }).catch((error) => {
-            console.error('[ERROR] Unable to alter the \'Projects\' table: ', error);
+            console.error('[ERROR] Unable to alter the \'Ledger\' table: ', error);
         });
     },
 }

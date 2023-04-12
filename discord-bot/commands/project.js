@@ -70,13 +70,14 @@ module.exports = {
                                     )
                                 }
                                 else {
-                                    const networkId = new Snowflake();
+                                    const uidSnowflake = new Snowflake();
+                                    const networkId = uidSnowflake.getUniqueID().toString();
 
-                                    await LedgerManager.createNewLedger(categoryName);
+                                    await LedgerManager.createNewLedgerAndUploadItToChannel(channel);
 
-                                    await Network.insert({ networkSnowflake: networkId }).then(
+                                    Network.insert(networkId).then(
                                         async () => {
-                                            await Node.insert({ guildSnowflake: interaction.guild.id, networkSnowflake: networkId, channelSnowflake: channel.id }).then(
+                                            Node.insert(interaction.guild.id, networkId, channel.id).then(
                                                 async () => {
                                                     await interaction.reply(
                                                         { 
@@ -86,9 +87,9 @@ module.exports = {
                                                     );
                                                     return;
                                                 }
-                                            )
+                                            );
                                         }
-                                    )
+                                    );
                                 }
                             }
                         );

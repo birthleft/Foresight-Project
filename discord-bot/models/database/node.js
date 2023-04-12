@@ -25,7 +25,7 @@ module.exports = {
             freezeTableName: true,
         });
     },
-    insert: (guildSnowflake, networkSnowflake, channelSnowflake) => {
+    insert: async (guildSnowflake, networkSnowflake, channelSnowflake) => {
         Node.create(
             {
                 guildSnowflake: guildSnowflake,
@@ -38,7 +38,7 @@ module.exports = {
             console.log('[INFO] [3/4]: Network Snowflake: ', networkSnowflake);
             console.log('[INFO] [4/4]: Channel Snowflake: ', channelSnowflake);
         }).catch((error) => {
-            console.error('[ERROR] Unable to insert a new Node into the \'Node\' table: ', error);
+            console.error('[ERROR] Unable to add a new Node into the \'Node\' table: ', error);
         });
     },
     sync: () => {

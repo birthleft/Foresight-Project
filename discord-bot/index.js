@@ -22,10 +22,10 @@ Network.syncForced();
 Node.syncForced();
 
 // Require the necessary DiscordJS classes
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { Collection, Events } = require('discord.js');
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = require('./config/client.js');
 
 // Authetificate to the database.
 sequelize.authenticate().then(() => {

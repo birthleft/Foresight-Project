@@ -16,7 +16,7 @@ module.exports = {
             freezeTableName: true,
         });
     },
-    insert: (networkSnowflake) => {
+    insert: async (networkSnowflake) => {
         Network.create(
             {
                 networkSnowflake: networkSnowflake,
@@ -24,9 +24,11 @@ module.exports = {
         ).then(() => {
             console.log('[INFO] [1/2]: Added a new Network into the \'Network\' table.');
             console.log('[INFO] [2/2]: Network Snowflake: ', networkSnowflake);
+        }).catch((error) => {
+            console.error('[ERROR] Unable to add a new Network into the \'Network\' table: ', error);
         });
     },
-    remove: (networkSnowflake) => {
+    remove: async (networkSnowflake) => {
         Network.destroy({
             where: {
                 networkSnowflake: networkSnowflake
@@ -34,9 +36,11 @@ module.exports = {
         }).then(() => {
             console.log('[INFO] [1/2]: Removed a Network from the \'Network\' table.');
             console.log('[INFO] [2/2]: Network Snowflake: ', networkSnowflake);
+        }).catch((error) => {
+            console.error('[ERROR] Unable to remove a Network from the \'Network\' table: ', error);
         });
     },
-    find: (networkSnowflake) => {
+    find: async (networkSnowflake) => {
         Network.findOne({
             where: {
                 networkSnowflake: networkSnowflake
