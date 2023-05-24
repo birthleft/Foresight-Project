@@ -46,14 +46,14 @@ module.exports = {
             console.log('[INFO] [3/5] Previous Hash: ', previousHash);
             console.log('[INFO] [4/5] Current Hash: ', currentBlock.hash);
             console.log('[INFO] [5/5] Current Index: ', currentBlock.index);
-            return currentBlock.hash;
+            return currentBlock;
         }).catch((error) => {
             console.error('[ERROR] Unable to add a new Entry into the \'Ledger\' table: ', error);
             return null;
         });
     },
     find: (index) => {
-        Ledger.findOne({
+        return Ledger.findOne({
             where: {
                 index: index
             }
@@ -62,6 +62,19 @@ module.exports = {
             return result;
         }).catch((error) => {
             console.error('[ERROR] Unable to find a row in the \'Ledger\' table: ', error);
+            return null;
+        });
+    },
+    findLatest: () => {
+        return Ledger.findOne({
+            order: [
+                ['timestamp', 'DESC']
+            ]
+        }).then((result) => {
+            console.log('[INFO] Found the latest row in the \'Ledger\' table.');
+            return result;
+        }).catch((error) => {
+            console.error('[ERROR] Unable to find the latest row in the \'Ledger\' table: ', error);
             return null;
         });
     },

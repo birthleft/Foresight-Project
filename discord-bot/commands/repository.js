@@ -7,44 +7,49 @@ const LedgerManager = require('../managers/ledger.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('project')
-        .setDescription('Handles all Python project related commands.')
+		.setName('repository')
+        .setDescription('Handles all Repository related commands.')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('attach')
-                .setDescription('Attaches a new Python project category to the server and a Python console channel for it.')
+                .setDescription('Attaches a new Repository category to the server and a Shell channel for it.')
                 .addStringOption(option =>
-                    option.setName('project')
-                        .setDescription('The Python project category name')
+                    option
+                        .setName('repo')
+                        .setDescription('The Repository category name')
                         .setRequired(true))
                 .addStringOption(option =>
-                    option.setName('console')
-                        .setDescription('The Python console channel name'))
+                    option
+                        .setName('shell')
+                        .setDescription('The Shell channel name'))
                 .addStringOption(option =>
-                    option.setName('snowflake')
-                        .setDescription('The Snowflake of the Python project network')))
+                    option
+                        .setName('network')
+                        .setDescription('The Snowflake of the Network')))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('detach')
                 .setDescription('Detaches an existing Python project category from the server.')
                 .addChannelOption(option =>
-                    option.setName('project')
+                    option
+                        .setName('project')
                         .setDescription('The Python project category name')
                         .setRequired(true))),
 	async execute(interaction) {
         if (interaction.options.getSubcommand() === 'attach') {
-            const categoryName = interaction.options.getString('project');
-            const channelName = interaction.options.getString('console') ?? 'console';
-            const networkSnowflake = interaction.options.getString('snowflake') ?? null;
-
-            interaction.guild.channels.create(
+            const categoryName = interaction.options.getString('repo');
+            const channelName = interaction.options.getString('shell') ?? 'shell';
+            const networkSnowflake = interaction.options.getString('network') ?? null;
+            // We create the Repository's category first.
+            await interaction.guild.channels.create(
                 {
                     name: categoryName, 
                     type: ChannelType.GuildCategory
                 }
             ).then(
                 async (category) => {
-                    interaction.guild.channels.create(
+                    // Then we create the Shell channel.
+                    await interaction.guild.channels.create(
                         {
                             name: channelName, 
                             type: ChannelType.GuildText, 
@@ -52,12 +57,17 @@ module.exports = {
                         }).then(
                             async (channel) => {
                                 if (networkSnowflake !== null) {
+                                    // If the user provided a Network Snowflake, we check if it exists.
                                     await Network.find(networkSnowflake).then(
                                         async (network) => {
                                             if (network !== null) {
+                                                // If it exists, we attach the server to the list of existing Nodes tied to a Network.
                                                 await Node.insert({ guildSnowflake: interaction.guild.id, networkSnowflake: networkSnowflake, channelSnowflake: channel.id })
+                                                // TODO: Find a way to pull the Ledger from the Network.
+                                                // 
                                             }
                                             else {
+                                                // If it doesn't exist, we return an error.
                                                 await interaction.reply(
                                                     { 
                                                         content: `The Snowflake you provided does not belong to any existing Python project network.`, 
@@ -70,11 +80,12 @@ module.exports = {
                                     )
                                 }
                                 else {
+                                    // If the user didn't provide a Network Snowflake, we create a new Network by generating a Snowflake.
                                     const uidSnowflake = new Snowflake();
                                     const networkId = uidSnowflake.getUniqueID().toString();
-
-                                    await LedgerManager.createNewLedgerAndUploadItToChannel(channel);
-
+                                    // We then create a new Ledger for the Network and upload it to the channel.
+                                    await LedgerManager.createNewLedgerAndUploadItToShellChannel(channel, categoryName);
+                                    // We then attach the server to the list of existing Nodes tied to a Network.
                                     Network.insert(networkId).then(
                                         async () => {
                                             Node.insert(interaction.guild.id, networkId, channel.id).then(
