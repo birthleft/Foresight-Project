@@ -103,14 +103,19 @@ module.exports = {
                     ],
                 }).then(
                     async (channel) => {
-                        // TODO: Finish this broadcasting!
                         // We create the local version of the Version Controlled file and upload it.
                         await FileManager.writeNewFileAndUploadItToChannel(channel);
+                        // We broadcast the creation of the Version Controlled file to the Network.
+                        await RepositoryManager.broadcastCreateFileToNetwork(interaction.guild.id, networkSnowflake, channelName);
                         // We create the Version Controlled file.
                         const fileData = FileManager.createNewFile(channel.name);
                         // We add the Version Controlled file to the Ledger message.
-                        await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake);
-                        // We broadcast the Version Controlled file to the Network.
+                        await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake).then(
+                            async () => {
+                                // We broadcast the Ledger to the Network.
+                                await LedgerManager.broadcastLedgerToNetwork(interaction.guild.id, networkSnowflake);
+                            }
+                        );
 
                         console.log(`[INFO] [1/3] The Version Controlled file \`${channelName}\` has been created.`);
                         console.log(`[INFO] [2/3] Network Snowflake: ${networkSnowflake}`);
@@ -162,12 +167,20 @@ module.exports = {
             await channel.send({ embeds: [newEmbed], files: [file] }).then(
                 async (message) => {
                     await message.pin();
+                    // We broadcast the modification of the Version Controlled file to the Network.
+                    await RepositoryManager.broadcastModifyFileToNetwork(interaction.guild.id, networkSnowflake, channel.name, file);
                 }
             )
+
             // We update the new Version Controlled file.
             const fileData = await FileManager.modifyExistingFile(channel.name, file);
             // We add the new Version Controlled file to the Ledger.
-            await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake);
+            await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake).then(
+                async () => {
+                    // We broadcast the Ledger to the Network.
+                    await LedgerManager.broadcastLedgerToNetwork(interaction.guild.id, networkSnowflake);
+                }
+            );
 
             console.log(`[INFO] [1/3] The Version Controlled file \`${channel.name}\` has been modified.`);
             console.log(`[INFO] [2/3] Network Snowflake: ${networkSnowflake}`);
@@ -184,12 +197,12 @@ module.exports = {
         else if(interaction.options.getSubcommand() === 'delete') {
             const channel = interaction.options.getChannel('name');
             // We check if the Version Controlled file already exists.
-            const fileExists = await FileManager.checkIfFileExists(channelName, ledgerMessage)
+            const fileExists = await FileManager.checkIfFileExists(channel.name, ledgerMessage)
             if (!fileExists) {
                 // If the Version Controlled file doesn't exist, we send a message.
                 await interaction.editReply(
                     {
-                        content: `A Version Controlled file with the name \`${channelName}\` does not exist.`,
+                        content: `A Version Controlled file with the name \`${channel.name}\` does not exist.`,
                         ephemeral: true
                     }
                 );
@@ -208,11 +221,20 @@ module.exports = {
                 return;
             }
             // We delete the channel.
-            await channel.delete();
+            await channel.delete().then(
+                async () => {
+                    // We broadcast the deletion of the Version Controlled file to the Network.
+                    await RepositoryManager.broadcastDeleteFileToNetwork(interaction.guild.id, networkSnowflake, channel.name);
+                });
             // We delete the Version Controlled file.
             const fileData = await FileManager.deleteExistingFile(channel.name);
             // We also add the deletion of the Version Controlled file to the Ledger.
-            await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake);
+            await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake).then(
+                async () => {
+                    // We broadcast the Ledger to the Network.
+                    await LedgerManager.broadcastLedgerToNetwork(interaction.guild.id, networkSnowflake);
+                }
+            );
 
             console.log(`[INFO] [1/3] The Version Controlled file \`${channel.name}\` has been deleted.`);
             console.log(`[INFO] [2/3] Network Snowflake: ${networkSnowflake}`);

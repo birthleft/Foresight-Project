@@ -8,6 +8,8 @@ const client = require('../config/client.js');
 const Ledger = require('../models/database/ledger.js');
 const Node = require('../models/database/node.js');
 
+const NodeManager = require('../managers/node.js');
+
 const FileData = require('../models/local/filedata.js');
 const ModificationType = require('../models/local/modificationtype.js');
 
@@ -146,6 +148,16 @@ module.exports = {
             });
         }
         return fileHistory;
+    },
+    getFileChannelFromCategory: async (fileName, category) => {
+        console.log(category.children);
+        const channels = await category.children.cache;
+        for (const [_, channel] of channels) {
+            if (channel.type === ChannelType.GuildText && channel.name === fileName) {
+                return channel;
+            }
+        }
+        return null;
     },
     findInitFileWithinChannel: async (channel) => {
         const messages = await channel.messages.fetchPinned();

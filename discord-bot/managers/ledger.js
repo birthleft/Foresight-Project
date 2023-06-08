@@ -30,7 +30,7 @@ async function __addFileDataToLedger(fileData, guildSnowflake, networkSnowflake)
     const ledgerMessage = await __getLedgerMessageFromNodeData(guildSnowflake, networkSnowflake);
     if (channel && ledgerMessage) {
         // We download the ledger.sqlite file.
-        FileUtil.download(ledgerMessage.attachments.first().url, './temp/ledger.sqlite').then(
+        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/ledger.sqlite').then(
             async (isDownloaded) => {
                 if (isDownloaded) {
                     // We create a new Sequelize instance for the ledger.
@@ -81,7 +81,6 @@ async function __addFileDataToLedger(fileData, guildSnowflake, networkSnowflake)
                         await ledgerSequelize.close().then(() => {
                             console.log('[INFO] [LEDGER-MANAGER] The connection to the Ledger database has been closed.');
                             FileUtil.remove('./temp/ledger.sqlite');
-                            return true;
                         });
                     });
                 }
@@ -90,7 +89,6 @@ async function __addFileDataToLedger(fileData, guildSnowflake, networkSnowflake)
                 }
             });
     }
-    return false;
 }
 
 module.exports = {
@@ -145,7 +143,7 @@ module.exports = {
     },
     pullLedgerAndUploadItToShellChannel: async (channel, categoryName, ledgerMessage) => {
         // We download the ledger.sqlite file.
-        FileUtil.download(ledgerMessage.attachments.first().url, './temp/ledger.sqlite').then(
+        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/ledger.sqlite').then(
             async (isDownloaded) => {
                 if (isDownloaded) {
                     // If the file has been downloaded, we save the ledger to the Shell channel.
@@ -239,13 +237,59 @@ module.exports = {
     addFileDataToLedger: async (fileData, guildSnowflake, networkSnowflake) => {
         return __addFileDataToLedger(fileData, guildSnowflake, networkSnowflake);
     },
-    broadcastFileDataToNodes: async (fileData, guildSnowflake, networkSnowflake) => {
-        // We get all the other nodes from the network.
-        const nodes = await NodeManager.findAllNodesFromNetworkExceptCurrent(guildSnowflake, networkSnowflake);
-        // We broadcast the fileData to all the other nodes.
-        await Promise.all(nodes.map(async (node) => {
-            await __addFileDataToLedger(fileData, node.guildSnowflake, networkSnowflake);
-            console.log('[INFO] [LEDGER-MANAGER] The fileData has been broadcasted to the Node ' + node.guildSnowflake + '.');
-        }));
+    broadcastLedgerToNetwork: async (guildSnowflake, networkSnowflake) => {
+        // We get the Ledger message from the Node Data.
+        const ledgerMessage = await __getLedgerMessageFromNodeData(guildSnowflake, networkSnowflake);
+        // We download the ledger.sqlite file.
+        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/ledger.sqlite').then(
+            async (isDownloaded) => {
+                if (isDownloaded) {
+                    // We get all the other nodes from the network.
+                    const nodes = await NodeManager.findAllNodesFromNetworkExceptCurrent(guildSnowflake, networkSnowflake);
+                    for (const node of nodes) {
+                        // We get the Shell channel of the Node.
+                        const shellChannel = await client.channels.fetch(node.channelSnowflake);
+                        if (!shellChannel) {
+                            console.error('[ERROR] [LEDGER-MANAGER] Unable to fetch the Shell channel of the Guild: ' + node.guildSnowflake + '.');
+                            continue;
+                        }
+                        // We get the Ledger message of the Node.
+                        const nodeLedgerMessage = await __getLedgerMessageFromNodeData(node.guildSnowflake, networkSnowflake);
+                        if (!nodeLedgerMessage) {
+                            console.error('[ERROR] [LEDGER-MANAGER] Unable to fetch the Ledger message of the Guild: ' + node.guildSnowflake + '.');
+                            continue;
+                        }
+                        // We delete the old Ledger message.
+                        await nodeLedgerMessage.delete();
+                        // We send the new Ledger message.
+                        await shellChannel.send({
+                            embeds:
+                            [
+                                {
+                                    title: 'Ledger',
+                                    description: 'The ledger for the category ' + shellChannel.parent.name + ' has been updated.',
+                                    color: 0x00ff00
+                                }
+                            ],
+                            files:
+                            [
+                                {
+                                    attachment: './temp/ledger.sqlite',
+                                    name: 'ledger.sqlite'
+                                }
+                            ],
+                        }).then(async (message) => {
+                            // We pin the new ledger message.
+                            await message.pin();
+                            console.log('[INFO] [LEDGER-MANAGER] The Ledger has been uploaded to the channel.');
+                            FileUtil.remove('./temp/ledger.sqlite');
+                        });
+                    }
+                }
+                else {
+                    console.error('[ERROR] [LEDGER-MANAGER] Unable to download the Ledger file.');
+                }
+            }
+        );
     },
 }
