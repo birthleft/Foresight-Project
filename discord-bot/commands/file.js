@@ -25,6 +25,18 @@ module.exports = {
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
+                .setName('modify')
+                .setDescription('Modifies an existing Version Controlled file.')
+                .addChannelOption(option =>
+                    option.setName('name')
+                        .setDescription('The Version Controlled file name')
+                        .setRequired(true))
+                .addAttachmentOption(option =>
+                    option.setName('file')
+                        .setDescription('The modified file')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('delete')
                 .setDescription('Deletes an existing Version Controlled file.')
                 .addChannelOption(option =>
@@ -32,13 +44,17 @@ module.exports = {
                         .setDescription('The Version Controlled file name')
                         .setRequired(true))),
 	async execute(interaction) {
+        // We defer the reply to avoid the 3 seconds timeout.
+        await interaction.deferReply({
+            ephemeral: true
+        });
         // We check if the Channel is a Shell channel.
         await RepositoryManager.checkIfChannelIsShellOfProject(interaction.channel.id)
             .then(
                 async (isShellOfProject) => {
                     if (!isShellOfProject) {
                         // If the channel is not a Shell of a Node within a Network, we send a message.
-                        await interaction.reply(
+                        await interaction.editReply(
                             {
                                 content: `This channel is not the Shell of any existing Node within any existing Network.`,
                                 ephemeral: true
@@ -56,21 +72,17 @@ module.exports = {
         if(interaction.options.getSubcommand() === 'create') {
             const channelName = interaction.options.getString('name');
             // We check if the Version Controlled file already exists.
-            await FileManager.checkIfFileExists(channelName, ledgerMessage)
-                .then(
-                    async (fileExists) => {
-                        if (fileExists) {
-                            // If the Version Controlled file already exists, we send a message.
-                            await interaction.reply(
-                                {
-                                    content: `A Version Controlled file with the name \`${channelName}\` already exists.`,
-                                    ephemeral: true
-                                }
-                            );
-                            return;
-                        }
+            const fileExists = await FileManager.checkIfFileExists(channelName.toLowerCase(), ledgerMessage)
+            if (fileExists) {
+                // If the Version Controlled file already exists, we send a message.
+                await interaction.editReply(
+                    {
+                        content: `A Version Controlled file with the name \`${channelName}\` already exists.`,
+                        ephemeral: true
                     }
                 );
+                return;
+            }
             // We find the project's Category using the Shell channel.
             const projectCategory = await RepositoryManager.findProjectCategoryOfShellChannel(interaction.channel.id);
             // We create a new channel for the Version Controlled file.
@@ -78,42 +90,34 @@ module.exports = {
                 {
                     name: channelName, 
                     type: ChannelType.GuildText, 
-                    parent: projectCategory
+                    parent: projectCategory,
+                    permissionOverwrites: [
+                        {
+                            id: interaction.guild.id,
+                            deny: [PermissionsBitField.Flags.SendMessages],
+                        },
+                        {
+                            id: interaction.client.user.id,
+                            allow: [PermissionsBitField.Flags.SendMessages],
+                        },
+                    ],
                 }).then(
                     async (channel) => {
-                        // // We set the channel's permissions.
-                        // await channel.permissionOverwrites.create(
-                        //     interaction.guild.roles.everyone, 
-                        //     {
-                        //         VIEW_CHANNEL: false
-                        //     }
-                        // );
-                        // await channel.permissionOverwrites.create(
-                        //     interaction.guild.me, 
-                        //     {
-                        //         VIEW_CHANNEL: true
-                        //     }
-                        // );
-                        // await channel.permissionOverwrites.create(
-                        //     interaction.member, 
-                        //     {
-                        //         VIEW_CHANNEL: true
-                        //     }
-                        // );
-
+                        // TODO: Finish this broadcasting!
                         // We create the local version of the Version Controlled file and upload it.
-                        FileManager.writeNewFileAndUploadItToChannel(channel);
+                        await FileManager.writeNewFileAndUploadItToChannel(channel);
                         // We create the Version Controlled file.
-                        const fileData = FileManager.createNewFile(channelName);
+                        const fileData = FileManager.createNewFile(channel.name);
                         // We add the Version Controlled file to the Ledger message.
-                        LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake);
+                        await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake);
+                        // We broadcast the Version Controlled file to the Network.
 
                         console.log(`[INFO] [1/3] The Version Controlled file \`${channelName}\` has been created.`);
                         console.log(`[INFO] [2/3] Network Snowflake: ${networkSnowflake}`);
                         console.log(`[INFO] [3/3] Guild Snowflake: ${interaction.guild.id}`);
 
                         // We send a message.
-                        await interaction.reply(
+                        await interaction.editReply(
                             {
                                 content: `The Version Controlled file \`${channelName}\` has been created.`,
                                 ephemeral: true
@@ -122,25 +126,105 @@ module.exports = {
                         return;
                     });
         }
-        else if(interaction.options.getSubcommand() === 'delete') {
-            const channelName = interaction.options.getString('name');
+        else if(interaction.options.getSubcommand() === 'modify') {
+            // We get the channel that's going to be modified.
+            const channel = interaction.options.getChannel('name');
+            // We get the file.
+            const file = interaction.options.getAttachment('file');
             // We check if the Version Controlled file already exists.
-            await FileManager.checkIfFileExists(channelName, ledgerMessage)
-                .then(
-                    async (fileExists) => {
-                        if (!fileExists) {
-                            // If the Version Controlled file already exists, we send a message.
-                            await interaction.reply(
-                                {
-                                    content: `A Version Controlled file with the name \`${channelName}\` does not exist.`,
-                                    ephemeral: true
-                                }
-                            );
-                            return;
-                        }
+            const fileExists = await FileManager.checkIfFileExists(channel.name, ledgerMessage)
+            if (!fileExists) {
+                // If the Version Controlled file doesn't exist, we send a message.
+                await interaction.editReply(
+                    {
+                        content: `A Version Controlled file with the name \`${channel.name}\` does not exist.`,
+                        ephemeral: true
                     }
                 );
-            // TODO: Finish this.
+                return;
+            }
+            // We check to see if the channel from which the command was sent is a repository file with an init file.
+            const initMessage = await FileManager.findInitFileWithinChannel(channel);
+            // If the channel is not a repository file with an init file, we send a message.
+            if (initMessage === null) {
+                await interaction.editReply(
+                    {
+                        content: `This command must be used within a repository file with an init file.`,
+                        ephemeral: true
+                    }
+                );
+                return;
+            }
+            // We build the new embed.
+            const newEmbed = EmbedBuilder.from(initMessage.embeds[0])
+                .setDescription('The file has been updated.');
+            // We send the new embed with the modified file.
+            await channel.send({ embeds: [newEmbed], files: [file] }).then(
+                async (message) => {
+                    await message.pin();
+                }
+            )
+            // We update the new Version Controlled file.
+            const fileData = await FileManager.modifyExistingFile(channel.name, file);
+            // We add the new Version Controlled file to the Ledger.
+            await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake);
+
+            console.log(`[INFO] [1/3] The Version Controlled file \`${channel.name}\` has been modified.`);
+            console.log(`[INFO] [2/3] Network Snowflake: ${networkSnowflake}`);
+            console.log(`[INFO] [3/3] Guild Snowflake: ${interaction.guild.id}`);
+            // We send a message.
+            await interaction.editReply(
+                {
+                    content: `The Version Controlled file \`${channel.name}\` has been updated.`,
+                    ephemeral: true
+                }
+            );
+            return;
+        }
+        else if(interaction.options.getSubcommand() === 'delete') {
+            const channel = interaction.options.getChannel('name');
+            // We check if the Version Controlled file already exists.
+            const fileExists = await FileManager.checkIfFileExists(channelName, ledgerMessage)
+            if (!fileExists) {
+                // If the Version Controlled file doesn't exist, we send a message.
+                await interaction.editReply(
+                    {
+                        content: `A Version Controlled file with the name \`${channelName}\` does not exist.`,
+                        ephemeral: true
+                    }
+                );
+                return;
+            }
+            // We check to see if the channel from which the command was sent is a repository file with an init file.
+            const initMessage = await FileManager.findInitFileWithinChannel(channel);
+            // If the channel is not a repository file with an init file, we send a message.
+            if (initMessage === null) {
+                await interaction.editReply(
+                    {
+                        content: `This command must be used within a repository file with an init file.`,
+                        ephemeral: true
+                    }
+                );
+                return;
+            }
+            // We delete the channel.
+            await channel.delete();
+            // We delete the Version Controlled file.
+            const fileData = await FileManager.deleteExistingFile(channel.name);
+            // We also add the deletion of the Version Controlled file to the Ledger.
+            await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake);
+
+            console.log(`[INFO] [1/3] The Version Controlled file \`${channel.name}\` has been deleted.`);
+            console.log(`[INFO] [2/3] Network Snowflake: ${networkSnowflake}`);
+            console.log(`[INFO] [3/3] Guild Snowflake: ${interaction.guild.id}`);
+            // We send a message.
+            await interaction.editReply(
+                {
+                    content: `The Version Controlled file \`${channel.name}\` has been deleted.`,
+                    ephemeral: true
+                }
+            );
+            return;
         }
 	},
 }

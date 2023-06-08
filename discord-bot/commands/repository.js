@@ -40,6 +40,10 @@ module.exports = {
             const categoryName = interaction.options.getString('repo');
             const channelName = interaction.options.getString('shell') ?? 'shell';
             const networkSnowflake = interaction.options.getString('network') ?? null;
+            // We defer the reply to avoid the 3 seconds timeout.
+            await interaction.deferReply({
+                ephemeral: true
+            });
             // We create the Repository's category first.
             await interaction.guild.channels.create(
                 {
@@ -58,17 +62,50 @@ module.exports = {
                             async (channel) => {
                                 if (networkSnowflake !== null) {
                                     // If the user provided a Network Snowflake, we check if it exists.
+                                    console.log(networkSnowflake);
                                     await Network.find(networkSnowflake).then(
                                         async (network) => {
                                             if (network !== null) {
-                                                // If it exists, we attach the server to the list of existing Nodes tied to a Network.
-                                                await Node.insert({ guildSnowflake: interaction.guild.id, networkSnowflake: networkSnowflake, channelSnowflake: channel.id })
                                                 // TODO: Find a way to pull the Ledger from the Network.
-                                                // 
+                                                // If it exists, we attach the server to the list of existing Nodes tied to a Network.
+                                                Node.insert(interaction.guild.id, networkSnowflake, channel.id).then(
+                                                    async () => {
+                                                        const ledgerMessage = await LedgerManager.findLedgerFromNetwork(interaction.guild.id, networkSnowflake);
+                                                        if (ledgerMessage !== null) {
+                                                            // If the Ledger exists, we update it.
+                                                            await LedgerManager.pullLedgerAndUploadItToShellChannel(channel, categoryName, ledgerMessage).then(
+                                                                async () => {
+                                                                    // We recreate the Repository from the Ledger. 
+                                                                    await LedgerManager.recreateRepositoryFromLedger(interaction.guild, interaction.client.user.id, category, ledgerMessage);
+                                                                    // We send a message.
+                                                                    await interaction.editReply(
+                                                                        {
+                                                                            content: `Attached the Python project category named \'${categoryName}\' to the server and a Python console channel named \'${channelName}\' based on the existing Network with the Snowflake \'${networkSnowflake}\'. Valid Ledger also found.`,
+                                                                            ephemeral: true
+                                                                        }
+                                                                    );
+                                                                    return;
+                                                                }
+                                                            )
+                                                        }
+                                                        else {
+                                                            // If the Ledger doesn't exist, we create a new one.
+                                                            await LedgerManager.createNewLedgerAndUploadItToShellChannel(channel, categoryName);
+                                                            // We send a message.
+                                                            await interaction.editReply(
+                                                                {
+                                                                    content: `Attached the Python project category named \'${categoryName}\' to the server and a Python console channel named \'${channelName}\' based on the existing Network with the Snowflake \'${networkSnowflake}\'. Valid Ledger not found. Created a new one.`,
+                                                                    ephemeral: true
+                                                                }
+                                                            );
+                                                            return;
+                                                        }
+                                                    }
+                                                )
                                             }
                                             else {
                                                 // If it doesn't exist, we return an error.
-                                                await interaction.reply(
+                                                await interaction.editReply(
                                                     { 
                                                         content: `The Snowflake you provided does not belong to any existing Python project network.`, 
                                                         ephemeral: true 
@@ -90,7 +127,7 @@ module.exports = {
                                         async () => {
                                             Node.insert(interaction.guild.id, networkId, channel.id).then(
                                                 async () => {
-                                                    await interaction.reply(
+                                                    await interaction.editReply(
                                                         { 
                                                             content: `Attached the Python project category named \'${categoryName}\' to the server and a Python console channel named \'${channelName}\'.`, 
                                                             ephemeral: true 
@@ -108,7 +145,7 @@ module.exports = {
             );
         }
         else if (interaction.options.getSubcommand() === 'detach') {
-            await interaction.reply(
+            await interaction.editReply(
                 {
                     content: `This command is not yet implemented.`,
                     ephemeral: true

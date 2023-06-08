@@ -57,7 +57,6 @@ async function mapFileChangesFromLedgerMessage(message) {
                     console.error('[ERROR] [FILE-MANAGER] Unable to download the Ledger file.');
                     return null;
                 }
-                
             }
         );
     }
@@ -80,14 +79,15 @@ module.exports = {
     },
     checkIfFileExists: async (fileName, ledgerMessage) => {
         const commitMap = await mapFileChangesFromLedgerMessage(ledgerMessage);
-        const createdFlag = false;
-        const deletedFlag = false;
+        var createdFlag = false;
+        var deletedFlag = false;
         commitMap.forEach((commit) => {
-            if (commit.fileName === fileName) {
-                if (commit.modificationType === ModificationType.Create) {
+            const commitData = JSON.parse(commit.data);
+            if (commitData.fileName === fileName) {
+                if (commitData.modificationType === ModificationType.Create) {
                     createdFlag = true;
                     deletedFlag = false;
-                } else if (commit.modificationType === ModificationType.Delete) {
+                } else if (commitData.modificationType === ModificationType.Delete) {
                     createdFlag = false;
                     deletedFlag = true;
                 }
@@ -99,10 +99,9 @@ module.exports = {
         // We create a new empty temporary file.
         await FileUtil.writeEmpty('./temp/init');
         const messageEmbed = new EmbedBuilder()
-            .setTitle('File Update')
-            .setDescription('A new file has been created.')
-            .setColor('#00FF00')
-            .setTimestamp();
+            .setTitle('File')
+            .setDescription('The file has been created.')
+            .setColor('#00FF00');
         // We send the message to the channel.
         await channel.send({ 
                 embeds: [messageEmbed],
@@ -112,9 +111,48 @@ module.exports = {
                         name: 'init'
                     }
                 ]
-            }).then(() => {
+            }).then(async (message) => {
+                await message.pin();
                 // We delete the temporary file.
                 FileUtil.remove('./temp/init');
             });
     },
+    getFileNamesFromFileChanges: async (ledgerMessage) => {
+        const commitMap = await mapFileChangesFromLedgerMessage(ledgerMessage);
+        const files = new Set();
+        if (commitMap) {
+            commitMap.forEach((commit) => {
+                const commitData = JSON.parse(commit.data);
+                if (commitData.modificationType === ModificationType.Create) {
+                    files.add(commitData.fileName);
+                } else if (commitData.modificationType === ModificationType.Modify) {
+                    files.add(commitData.fileName);
+                } else if (commitData.modificationType === ModificationType.Delete) {
+                    files.delete(commitData.fileName);
+                }
+            });
+        }
+        return files;
+    },
+    getFileContentHistoryFromFileChanges: async (fileName, ledgerMessage) => {
+        const commitMap = await mapFileChangesFromLedgerMessage(ledgerMessage);
+        const fileHistory = [];
+        if (commitMap) {
+            commitMap.forEach((commit) => {
+                const commitData = JSON.parse(commit.data);
+                if (commitData.fileName === fileName) {
+                    fileHistory.push(commitData.fileContent);
+                }
+            });
+        }
+        return fileHistory;
+    },
+    findInitFileWithinChannel: async (channel) => {
+        const messages = await channel.messages.fetchPinned();
+        for (const [_, message] of messages) {
+            if (message.author.id === client.user.id && message.embeds[0].title === 'File' && message.attachments.first().name === 'init')
+                return message;
+        }
+        return null;
+    }
 };
