@@ -4,8 +4,6 @@ const Node = require('../models/database/node.js');
 const Network = require('../models/database/network.js');
 const Pathway = require('../models/database/pathway.js');
 
-const NodeManager = require('../managers/node.js');
-const PathwayManager = require('../managers/pathway.js');
 const RepositoryManager = require('../managers/repository.js');
 const NetworkManager = require('../managers/network.js');
 const FileManager = require('../managers/file.js');
@@ -49,30 +47,26 @@ module.exports = {
             ephemeral: true
         });
         // We check if the Channel is a Shell channel.
-        await RepositoryManager.checkIfChannelIsShellOfProject(interaction.channel.id)
-            .then(
-                async (isShellOfProject) => {
-                    if (!isShellOfProject) {
-                        // If the channel is not a Shell of a Node within a Network, we send a message.
-                        await interaction.editReply(
-                            {
-                                content: `This channel is not the Shell of any existing Node within any existing Network.`,
-                                ephemeral: true
-                            }
-                        );
-                        return;
-                    }
+        const isShellOfProject = await RepositoryManager.checkIfChannelIsShellOfProject(interaction.channel.id)
+        if (!isShellOfProject) {
+            // If the channel is not a Shell of a Node within a Network, we send a message.
+            await interaction.editReply(
+                {
+                    content: `This channel is not the Shell of any existing Node within any existing Network.`,
+                    ephemeral: true
                 }
             );
+            return;
+        }
         // We find the project's Network using the Shell channel.
         const networkSnowflake = await NetworkManager.findNetworkSnowflakeOfShellChannel(interaction.guild.id, interaction.channel.id);
         // We get the Ledger message.
         const ledgerMessage = await LedgerManager.getLedgerMessageFromNodeData(interaction.guild.id, networkSnowflake);
 
         if(interaction.options.getSubcommand() === 'create') {
-            const channelName = interaction.options.getString('name');
+            const channelName = interaction.options.getString('name').toLowerCase();
             // We check if the Version Controlled file already exists.
-            const fileExists = await FileManager.checkIfFileExists(channelName.toLowerCase(), ledgerMessage)
+            const fileExists = await FileManager.checkIfFileExists(channelName, ledgerMessage)
             if (fileExists) {
                 // If the Version Controlled file already exists, we send a message.
                 await interaction.editReply(
@@ -91,7 +85,8 @@ module.exports = {
                     name: channelName, 
                     type: ChannelType.GuildText, 
                     parent: projectCategory,
-                    permissionOverwrites: [
+                    permissionOverwrites: 
+                    [
                         {
                             id: interaction.guild.id,
                             deny: [PermissionsBitField.Flags.SendMessages],
@@ -107,29 +102,29 @@ module.exports = {
                         await FileManager.writeNewFileAndUploadItToChannel(channel);
                         // We broadcast the creation of the Version Controlled file to the Network.
                         await RepositoryManager.broadcastCreateFileToNetwork(interaction.guild.id, networkSnowflake, channelName);
-                        // We create the Version Controlled file.
-                        const fileData = FileManager.createNewFile(channel.name);
-                        // We add the Version Controlled file to the Ledger message.
-                        await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake).then(
-                            async () => {
-                                // We broadcast the Ledger to the Network.
-                                await LedgerManager.broadcastLedgerToNetwork(interaction.guild.id, networkSnowflake);
-                            }
-                        );
-
-                        console.log(`[INFO] [1/3] The Version Controlled file \`${channelName}\` has been created.`);
-                        console.log(`[INFO] [2/3] Network Snowflake: ${networkSnowflake}`);
-                        console.log(`[INFO] [3/3] Guild Snowflake: ${interaction.guild.id}`);
-
-                        // We send a message.
-                        await interaction.editReply(
-                            {
-                                content: `The Version Controlled file \`${channelName}\` has been created.`,
-                                ephemeral: true
-                            }
-                        );
-                        return;
                     });
+            // We create the Version Controlled file.
+            const fileData = FileManager.createNewFile(channelName);
+            // We add the Version Controlled file to the Ledger message.
+            await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake).then(
+                async () => {
+                    // We broadcast the Ledger to the Network.
+                    await LedgerManager.broadcastLedgerToNetwork(interaction.guild.id, networkSnowflake);
+                }
+            );
+
+            console.log(`[INFO] [1/3] The Version Controlled file \`${channelName}\` has been created.`);
+            console.log(`[INFO] [2/3] Network Snowflake: ${networkSnowflake}`);
+            console.log(`[INFO] [3/3] Guild Snowflake: ${interaction.guild.id}`);
+
+            // We send a message.
+            await interaction.editReply(
+                {
+                    content: `The Version Controlled file \`${channelName}\` has been created.`,
+                    ephemeral: true
+                }
+            );
+            return;
         }
         else if(interaction.options.getSubcommand() === 'modify') {
             // We get the channel that's going to be modified.

@@ -150,7 +150,6 @@ module.exports = {
         return fileHistory;
     },
     getFileChannelFromCategory: async (fileName, category) => {
-        console.log(category.children);
         const channels = await category.children.cache;
         for (const [_, channel] of channels) {
             if (channel.type === ChannelType.GuildText && channel.name === fileName) {

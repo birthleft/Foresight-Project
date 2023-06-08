@@ -12,15 +12,12 @@ module.exports = {
 			return;
 		}
 
-		console.log(`[INFO] Executing \'\/${interaction.commandName}\', requested by ${interaction.member.displayName} (${interaction.member}).`)
-		await command.execute(interaction);
-
-		// try {
-		// 	console.log(`[INFO] Executing \'\/${interaction.commandName}\', requested by ${interaction.member.displayName} (${interaction.member}).`)
-		// 	await command.execute(interaction);
-		// } catch (error) {
-		// 	console.error(`[ERROR] Error executing \'\/${interaction.commandName}\'.`);
-		// 	console.error(`[ERROR] ${error}`);
-		// }
+		try {
+			console.log(`[INFO] Executing \'\/${interaction.commandName}\', requested by ${interaction.member.displayName} (${interaction.member}).`)
+			await command.execute(interaction);
+		} catch (error) {
+			console.error(`[ERROR] Error executing \'\/${interaction.commandName}\'.`);
+			console.error(`[ERROR] ${error}`);
+		}
 	},
 };

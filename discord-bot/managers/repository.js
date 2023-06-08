@@ -40,12 +40,12 @@ module.exports = {
     broadcastCreateFileToNetwork: async (guildSnowflake, networkSnowflake, channelName) => {
         // We get all the nodes from the network.
         const nodes = await NodeManager.findAllNodesFromNetworkExceptCurrent(guildSnowflake, networkSnowflake);
-        for (const node of nodes) {
+        return Promise.all(nodes.map(async (node) => {
             // We get the Shell channel of the Node.
             const shellChannel = await client.channels.fetch(node.channelSnowflake);
             if (!shellChannel) {
                 console.error('[ERROR] [REPOSITORY-MANAGER] Unable to fetch the Shell channel of the Guild: ' + node.guildSnowflake + '.');
-                continue;
+                return;
             }
             // We get the Project category of the Shell channel.
             const projectCategory = shellChannel.parent;
@@ -53,7 +53,7 @@ module.exports = {
             const guild = await client.guilds.fetch(node.guildSnowflake);
             if (!guild) {
                 console.error('[ERROR] [REPOSITORY-MANAGER] Unable to fetch the Guild: ' + node.guildSnowflake + '.');
-                continue;
+                return;
             }
             // We create the new channel.
             await guild.channels.create(
@@ -76,17 +76,17 @@ module.exports = {
                 // We create the local version of the Version Controlled file and upload it.
                 await FileManager.writeNewFileAndUploadItToChannel(channel);
             });
-        }
+        }));
     },
     broadcastModifyFileToNetwork: async (guildSnowflake, networkSnowflake, channelName, file) => {
         // We get all the nodes from the network.
         const nodes = await NodeManager.findAllNodesFromNetworkExceptCurrent(guildSnowflake, networkSnowflake);
-        for (const node of nodes) {
+        return Promise.all(nodes.map(async (node) => {
             // We get the Shell channel of the Node.
             const shellChannel = await client.channels.fetch(node.channelSnowflake);
             if (!shellChannel) {
                 console.error('[ERROR] [REPOSITORY-MANAGER] Unable to fetch the Shell channel of the Guild: ' + node.guildSnowflake + '.');
-                continue;
+                return;
             }
             // We get the Project category of the Shell channel.
             const projectCategory = shellChannel.parent;
@@ -94,12 +94,12 @@ module.exports = {
             const fileChannel = await FileManager.getFileChannelFromCategory(channelName, projectCategory);
             if (!fileChannel) {
                 console.error('[ERROR] [REPOSITORY-MANAGER] Unable to fetch the File channel: ' + channelName + '.');
-                continue;
+                return;
             }
             const initMessage = await FileManager.findInitFileWithinChannel(fileChannel);
             if (!initMessage) {
                 console.error('[ERROR] [REPOSITORY-MANAGER] Unable to fetch the init message of the File channel: ' + channelName + '.');
-                continue;
+                return;
             }
             // We build the new embed.
             const newEmbed = EmbedBuilder.from(initMessage.embeds[0])
@@ -110,17 +110,17 @@ module.exports = {
                     await message.pin();
                 }
             )
-        }
+        }));
     },
     broadcastDeleteFileToNetwork: async (guildSnowflake, networkSnowflake, channelName) => {
         // We get all the nodes from the network.
         const nodes = await NodeManager.findAllNodesFromNetworkExceptCurrent(guildSnowflake, networkSnowflake);
-        for (const node of nodes) {
+        return Promise.all(nodes.map(async (node) => {
             // We get the Shell channel of the Node.
             const shellChannel = await client.channels.fetch(node.channelSnowflake);
             if (!shellChannel) {
                 console.error('[ERROR] [REPOSITORY-MANAGER] Unable to fetch the Shell channel of the Guild: ' + node.guildSnowflake + '.');
-                continue;
+                return;
             }
             // We get the Project category of the Shell channel.
             const projectCategory = shellChannel.parent;
@@ -128,10 +128,10 @@ module.exports = {
             const fileChannel = await FileManager.getFileChannelFromCategory(channelName, projectCategory);
             if (!fileChannel) {
                 console.error('[ERROR] [REPOSITORY-MANAGER] Unable to fetch the File channel: ' + channelName + '.');
-                continue;
+                return;
             }
             // We delete the File's channel.
             await fileChannel.delete();
-        }
+        }));
     }
 }

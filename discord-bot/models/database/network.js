@@ -41,7 +41,7 @@ module.exports = {
         });
     },
     find: async (networkSnowflake) => {
-        Network.findOne({
+        return Network.findOne({
             where: {
                 networkSnowflake: networkSnowflake
             }

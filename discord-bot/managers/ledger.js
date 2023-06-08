@@ -246,18 +246,18 @@ module.exports = {
                 if (isDownloaded) {
                     // We get all the other nodes from the network.
                     const nodes = await NodeManager.findAllNodesFromNetworkExceptCurrent(guildSnowflake, networkSnowflake);
-                    for (const node of nodes) {
+                    return Promise.all(nodes.map(async (node) => {
                         // We get the Shell channel of the Node.
                         const shellChannel = await client.channels.fetch(node.channelSnowflake);
                         if (!shellChannel) {
                             console.error('[ERROR] [LEDGER-MANAGER] Unable to fetch the Shell channel of the Guild: ' + node.guildSnowflake + '.');
-                            continue;
+                            return;
                         }
                         // We get the Ledger message of the Node.
                         const nodeLedgerMessage = await __getLedgerMessageFromNodeData(node.guildSnowflake, networkSnowflake);
                         if (!nodeLedgerMessage) {
                             console.error('[ERROR] [LEDGER-MANAGER] Unable to fetch the Ledger message of the Guild: ' + node.guildSnowflake + '.');
-                            continue;
+                            return;
                         }
                         // We delete the old Ledger message.
                         await nodeLedgerMessage.delete();
@@ -284,7 +284,7 @@ module.exports = {
                             console.log('[INFO] [LEDGER-MANAGER] The Ledger has been uploaded to the channel.');
                             FileUtil.remove('./temp/ledger.sqlite');
                         });
-                    }
+                    }));
                 }
                 else {
                     console.error('[ERROR] [LEDGER-MANAGER] Unable to download the Ledger file.');
