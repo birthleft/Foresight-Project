@@ -99,9 +99,9 @@ module.exports = {
                 }).then(
                     async (channel) => {
                         // We create the local version of the Version Controlled file and upload it.
-                        await FileManager.writeNewFileAndUploadItToChannel(channel);
+                        FileManager.writeNewFileAndUploadItToChannel(channel);
                         // We broadcast the creation of the Version Controlled file to the Network.
-                        await RepositoryManager.broadcastCreateFileToNetwork(interaction.guild.id, networkSnowflake, channelName);
+                        RepositoryManager.broadcastCreateFileToNetwork(interaction.guild.id, networkSnowflake, channelName);
                     });
             // We create the Version Controlled file.
             const fileData = FileManager.createNewFile(channelName);
@@ -219,7 +219,7 @@ module.exports = {
             await channel.delete().then(
                 async () => {
                     // We broadcast the deletion of the Version Controlled file to the Network.
-                    await RepositoryManager.broadcastDeleteFileToNetwork(interaction.guild.id, networkSnowflake, channel.name);
+                    RepositoryManager.broadcastDeleteFileToNetwork(interaction.guild.id, networkSnowflake, channel.name);
                 });
             // We delete the Version Controlled file.
             const fileData = await FileManager.deleteExistingFile(channel.name);
@@ -227,7 +227,7 @@ module.exports = {
             await LedgerManager.addFileDataToLedger(fileData, interaction.guild.id, networkSnowflake).then(
                 async () => {
                     // We broadcast the Ledger to the Network.
-                    await LedgerManager.broadcastLedgerToNetwork(interaction.guild.id, networkSnowflake);
+                    await LedgerManager.broadcastLedgerToNetwork(interaction.guild.id, networkSnowflake)
                 }
             );
 

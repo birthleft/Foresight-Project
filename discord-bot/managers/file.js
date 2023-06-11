@@ -21,7 +21,7 @@ async function mapFileChangesFromLedgerMessage(message) {
     const map = new Map();
 
     if (message) {
-        return FileUtil.download(message.attachments.first().url, './temp/ledger.sqlite').then(
+        return FileUtil.download(message.attachments.first().url, './temp/mapped/ledger' + '_' + message.id + '.sqlite').then(
             async (isDownloaded) => {
                 if (isDownloaded) {
                     const ledgerSequelize = new Sequelize('ledger', 'user', 'user', {
@@ -29,7 +29,7 @@ async function mapFileChangesFromLedgerMessage(message) {
                         dialect: 'sqlite',
                         logging: (...msg) => console.log(Colors.white(`[LEDGER] ${msg}`)),
                         // SQLite only
-                        storage: './temp/ledger.sqlite',
+                        storage: './temp/mapped/ledger' + '_' + message.id + '.sqlite',
                     });
             
                     Ledger.initialize(ledgerSequelize);
@@ -50,7 +50,7 @@ async function mapFileChangesFromLedgerMessage(message) {
             
                     await ledgerSequelize.close().then(() => {
                         console.log('[INFO] [FILE-MANAGER] The connection to the Ledger database has been closed.');
-                        FileUtil.remove('./temp/ledger.sqlite');
+                        FileUtil.remove('./temp/mapped/ledger' + '_' + message.id + '.sqlite');
                     });
 
                     return map;
@@ -99,7 +99,7 @@ module.exports = {
     },
     writeNewFileAndUploadItToChannel: async (channel) => {
         // We create a new empty temporary file.
-        await FileUtil.writeEmpty('./temp/init');
+        await FileUtil.writeEmpty('./temp/init' + '_' + channel.id);
         const messageEmbed = new EmbedBuilder()
             .setTitle('File')
             .setDescription('The file has been created.')
@@ -109,14 +109,14 @@ module.exports = {
                 embeds: [messageEmbed],
                 files: [
                     {
-                        attachment: './temp/init',
+                        attachment: './temp/init' + '_' + channel.id,
                         name: 'init'
                     }
                 ]
             }).then(async (message) => {
                 await message.pin();
                 // We delete the temporary file.
-                FileUtil.remove('./temp/init');
+                FileUtil.remove('./temp/init' + '_' + channel.id);
             });
     },
     getFileNamesFromFileChanges: async (ledgerMessage) => {

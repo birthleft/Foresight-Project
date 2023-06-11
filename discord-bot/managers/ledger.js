@@ -30,7 +30,7 @@ async function __addFileDataToLedger(fileData, guildSnowflake, networkSnowflake)
     const ledgerMessage = await __getLedgerMessageFromNodeData(guildSnowflake, networkSnowflake);
     if (channel && ledgerMessage) {
         // We download the ledger.sqlite file.
-        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/ledger.sqlite').then(
+        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/modified/ledger' + '_' + guildSnowflake + '_' + networkSnowflake + '.sqlite').then(
             async (isDownloaded) => {
                 if (isDownloaded) {
                     // We create a new Sequelize instance for the ledger.
@@ -39,7 +39,7 @@ async function __addFileDataToLedger(fileData, guildSnowflake, networkSnowflake)
                         dialect: 'sqlite',
                         logging: (...msg) => console.log(Colors.white(`[LEDGER] ${msg}`)),
                         // SQLite only
-                        storage: './temp/ledger.sqlite',
+                        storage: './temp/modified/ledger' + '_' + guildSnowflake + '_' + networkSnowflake + '.sqlite',
                     });
                     // We create a new Ledger model for the ledger.
                     Ledger.initialize(ledgerSequelize);
@@ -70,7 +70,7 @@ async function __addFileDataToLedger(fileData, guildSnowflake, networkSnowflake)
                         files:
                         [
                             {
-                                attachment: './temp/ledger.sqlite',
+                                attachment: './temp/modified/ledger' + '_' + guildSnowflake + '_' + networkSnowflake + '.sqlite',
                                 name: 'ledger.sqlite'
                             }
                         ],
@@ -80,7 +80,7 @@ async function __addFileDataToLedger(fileData, guildSnowflake, networkSnowflake)
                         console.log('[INFO] [LEDGER-MANAGER] The Ledger has been uploaded to the channel.');
                         await ledgerSequelize.close().then(() => {
                             console.log('[INFO] [LEDGER-MANAGER] The connection to the Ledger database has been closed.');
-                            FileUtil.remove('./temp/ledger.sqlite');
+                            FileUtil.remove('./temp/modified/ledger' + '_' + guildSnowflake + '_' + networkSnowflake + '.sqlite');
                         });
                     });
                 }
@@ -99,7 +99,7 @@ module.exports = {
             dialect: 'sqlite',
             logging: (...msg) => console.log(Colors.white(`[LEDGER] ${msg}`)),
             // SQLite only
-            storage: './temp/ledger.sqlite',
+            storage: './temp/created/ledger' + '_' + channel.id + '.sqlite',
         });
         // We create a new Ledger model for the ledger.
         Ledger.initialize(ledgerSequelize);
@@ -128,7 +128,7 @@ module.exports = {
             files: 
             [
                 {
-                    attachment: './temp/ledger.sqlite',
+                    attachment: './temp/created/ledger' + '_' + channel.id + '.sqlite',
                     name: 'ledger.sqlite'
                 }
             ],
@@ -137,13 +137,13 @@ module.exports = {
             console.log('[INFO] [LEDGER-MANAGER] The Ledger has been uploaded to the channel.');
             await ledgerSequelize.close().then(() => {
                 console.log('[INFO] [LEDGER-MANAGER] The connection to the Ledger database has been closed.');
-                FileUtil.remove('./temp/ledger.sqlite');
+                FileUtil.remove('./temp/created/ledger' + '_' + channel.id + '.sqlite');
             });
         });
     },
     pullLedgerAndUploadItToShellChannel: async (channel, categoryName, ledgerMessage) => {
         // We download the ledger.sqlite file.
-        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/ledger.sqlite').then(
+        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/pulled/ledger' + '_' + channel.id + '.sqlite').then(
             async (isDownloaded) => {
                 if (isDownloaded) {
                     // If the file has been downloaded, we save the ledger to the Shell channel.
@@ -159,7 +159,7 @@ module.exports = {
                         files:
                         [
                             {
-                                attachment: './temp/ledger.sqlite',
+                                attachment: './temp/pulled/ledger' + '_' + channel.id + '.sqlite',
                                 name: 'ledger.sqlite'
                             }
                         ],
@@ -167,7 +167,7 @@ module.exports = {
                         // We pin the new ledger message.
                         await message.pin();
                         console.log('[INFO] [LEDGER-MANAGER] The Ledger has been uploaded to the channel.');
-                        FileUtil.remove('./temp/ledger.sqlite');
+                        FileUtil.remove('./temp/pulled/ledger' + '_' + channel.id + '.sqlite');
                     });
                 }
                 else {
@@ -241,7 +241,7 @@ module.exports = {
         // We get the Ledger message from the Node Data.
         const ledgerMessage = await __getLedgerMessageFromNodeData(guildSnowflake, networkSnowflake);
         // We download the ledger.sqlite file.
-        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/ledger.sqlite').then(
+        await FileUtil.download(ledgerMessage.attachments.first().url, './temp/broadcasted/ledger' + '_' + guildSnowflake + '_' + networkSnowflake + '.sqlite').then(
             async (isDownloaded) => {
                 if (isDownloaded) {
                     // We get all the other nodes from the network.
@@ -274,7 +274,7 @@ module.exports = {
                             files:
                             [
                                 {
-                                    attachment: './temp/ledger.sqlite',
+                                    attachment: './temp/broadcasted/ledger' + '_' + guildSnowflake + '_' + networkSnowflake + '.sqlite',
                                     name: 'ledger.sqlite'
                                 }
                             ],
@@ -282,9 +282,12 @@ module.exports = {
                             // We pin the new ledger message.
                             await message.pin();
                             console.log('[INFO] [LEDGER-MANAGER] The Ledger has been uploaded to the channel.');
-                            FileUtil.remove('./temp/ledger.sqlite');
                         });
-                    }));
+                    })).then(
+                        async () => {
+                            FileUtil.remove('./temp/broadcasted/ledger' + '_' + guildSnowflake + '_' + networkSnowflake + '.sqlite');
+                        }
+                    );
                 }
                 else {
                     console.error('[ERROR] [LEDGER-MANAGER] Unable to download the Ledger file.');

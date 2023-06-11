@@ -74,7 +74,7 @@ module.exports = {
                 }
             ).then(async (channel) => {
                 // We create the local version of the Version Controlled file and upload it.
-                await FileManager.writeNewFileAndUploadItToChannel(channel);
+                FileManager.writeNewFileAndUploadItToChannel(channel);
             });
         }));
     },

@@ -139,7 +139,7 @@ module.exports = {
                 // We send a message.
                 await interaction.editReply(
                     { 
-                        content: `Attached the Python project category named \'${categoryName}\' to the server and a Python console channel named \'${channelName}\'.`, 
+                        content: `Attached the Repository category named \'${categoryName}\' to the server and a Shell channel named \'${channelName}\'.`, 
                         ephemeral: true 
                     }
                 );

@@ -1,9 +1,10 @@
 const http = require('node:https');
+const path = require('node:path');
 const fs = require('node:fs');
 
 module.exports = {
-    remove: (path) => {
-        fs.rm(path, { recursive: true, force: true }, async function (error) {
+    remove: (filePath) => {
+        fs.rm(filePath, { recursive: true, force: true }, async function (error) {
             if (error) {
                 console.error('[ERROR] [FILE-UTILS] Unable to delete the Path: ', error);
             }
@@ -12,7 +13,7 @@ module.exports = {
             }
         });
     },
-    download: (url, path) => {
+    download: (url, filePath) => {
         return new Promise((resolve) => {
             http.get(url, (response) => {
                 if (response.statusCode !== 200) {
@@ -20,8 +21,11 @@ module.exports = {
                     resolve(false);
                     return;
                 }
+                const directoryPath = path.dirname(filePath);
+                // Create the directory if it doesn't exist
+                fs.mkdirSync(directoryPath, { recursive: true });
                 // Create a write stream to save the file
-                const fileStream = fs.createWriteStream(path);
+                const fileStream = fs.createWriteStream(filePath);
                 // Pipe the HTTP response into the file stream
                 response.pipe(fileStream);
                 // Handle the 'finish' event to know when the download is complete
@@ -35,8 +39,8 @@ module.exports = {
             });
         });
     },
-    read: async (path) => {
-        return fs.promises.readFile(path, 'utf8').then(
+    read: async (filePath) => {
+        return fs.promises.readFile(filePath, 'utf8').then(
             (data) => {
                 console.log('[INFO] [FILE-UTILS] Successfully read the File.');
                 return data;
@@ -48,14 +52,16 @@ module.exports = {
             }
         );
     },
-    writeEmpty: async (path) => {
-        fs.writeFile(path, "", (error) => {
-            if (error) {
-                console.error('[ERROR] [FILE-UTILS] Unable to write the File: ', error);
-            }
-            else {
-                console.log('[INFO] [FILE-UTILS] Successfully wrote the File.');
-            }
-        });
+    writeEmpty: async (filePath) => {
+        try {
+            const directoryPath = path.dirname(filePath);
+            // Create the directory if it doesn't exist
+            await fs.promises.mkdir(directoryPath, { recursive: true });
+            // Write the empty file
+            await fs.promises.writeFile(filePath, '');
+            console.log('[INFO] [FILE-UTILS] Successfully wrote the File.');
+        } catch (error) {
+            console.error('[ERROR] [FILE-UTILS] Unable to write the File:', error);
+        }
     }
 }
