@@ -41,6 +41,39 @@ module.exports = {
             console.error('[ERROR] Unable to add a new Node into the \'Node\' table: ', error);
         });
     },
+    remove: async (guildSnowflake, networkSnowflake, channelSnowflake) => {
+        Node.destroy(
+            {
+                where: {
+                    guildSnowflake: guildSnowflake,
+                    networkSnowflake: networkSnowflake,
+                    channelSnowflake: channelSnowflake,
+                }
+            }
+        ).then(() => {
+            console.log('[INFO] [1/4]: Removed a Node from the \'Node\' table.');
+            console.log('[INFO] [2/4]: Guild Snowflake: ', guildSnowflake);
+            console.log('[INFO] [3/4]: Network Snowflake: ', networkSnowflake);
+            console.log('[INFO] [4/4]: Channel Snowflake: ', channelSnowflake);
+        }).catch((error) => {
+            console.error('[ERROR] Unable to remove a Node from the \'Node\' table: ', error);
+        });
+    },
+    findAllByNetworkSnowflake: async (networkSnowflake) => {
+        return await Node.findAll(
+            {
+                where: {
+                    networkSnowflake: networkSnowflake,
+                }
+            }
+        ).then((nodes) => {
+            console.log('[INFO] [1/2]: Found all Nodes from the \'Node\' table.');
+            console.log('[INFO] [2/2]: Network Snowflake: ', networkSnowflake);
+            return nodes;
+        }).catch((error) => {
+            console.error('[ERROR] Unable to find all Nodes from the \'Node\' table: ', error);
+        });
+    },
     sync: () => {
         Node.sync().then(() => {
             console.log('[INFO] Syncronized the \'Node\' table.');

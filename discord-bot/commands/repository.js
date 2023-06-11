@@ -4,6 +4,7 @@ const { Snowflake } = require('nodejs-snowflake');
 const Node = require('../models/database/node.js');
 const Network = require('../models/database/network.js');
 const LedgerManager = require('../managers/ledger.js');
+const NetworkManager = require('../managers/network.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -32,8 +33,8 @@ module.exports = {
                 .setDescription('Detaches an existing Repository category from the server.')
                 .addChannelOption(option =>
                     option
-                        .setName('project')
-                        .setDescription('The Repository category name')
+                        .setName('shell')
+                        .setDescription('The Repository\'s Shell channel')
                         .setRequired(true))),
 	async execute(interaction) {
         // We defer the reply to avoid the 3 seconds timeout.
@@ -147,9 +148,45 @@ module.exports = {
             }
         }
         else if (interaction.options.getSubcommand() === 'detach') {
+            const shellChannel = interaction.options.getChannel('shell');
+            // We get the Network Snowflake of the Shell channel.
+            const networkSnowflake = await NetworkManager.findNetworkSnowflakeOfShellChannel(interaction.guild.id, shellChannel.id);
+            if (networkSnowflake === null) {
+                // If the Shell channel is not tied to a Network, we return an error.
+                await interaction.editReply(
+                    { 
+                        content: `The channel you provided is not a Shell channel tied to any existing network.`, 
+                        ephemeral: true 
+                    }
+                );
+                return;
+            }
+            // We get the category of the Shell channel.
+            const category = shellChannel.parent;
+            // We delete all the channels in the category.
+            await Promise.all(category.children.cache.map(async (channel) => 
+                {
+                    await channel.delete();
+                }
+            )).then(
+                async () => {
+                    // We delete the category.
+                    await category.delete();
+                });
+            // We delete the Node.
+            await Node.remove(interaction.guild.id, networkSnowflake, shellChannel.id).then(
+                async () => {
+                    // We check if the Network is still tied to any other Nodes.
+                    const nodes = await Node.findAllByNetworkSnowflake(networkSnowflake);
+                    if (nodes.length === 0) {
+                        // If it's not, we delete the Network.
+                        await Network.remove(networkSnowflake);
+                    }
+                });
+
             await interaction.editReply(
                 {
-                    content: `This command is not yet implemented.`,
+                    content: `Detached the Repository category named \'${category.name}\' from the server.`,
                     ephemeral: true
                 }
             );
