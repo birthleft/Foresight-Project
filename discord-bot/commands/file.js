@@ -163,7 +163,7 @@ module.exports = {
                 async (message) => {
                     await message.pin();
                     // We broadcast the modification of the Version Controlled file to the Network.
-                    await RepositoryManager.broadcastModifyFileToNetwork(interaction.guild.id, networkSnowflake, channel.name, file);
+                    RepositoryManager.broadcastModifyFileToNetwork(interaction.guild.id, networkSnowflake, channel.name, file);
                 }
             )
 
