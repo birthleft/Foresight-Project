@@ -1,9 +1,5 @@
 const { SlashCommandBuilder, ChannelType, PermissionsBitField, EmbedBuilder } = require('discord.js');
 
-const Node = require('../models/database/node.js');
-const Network = require('../models/database/network.js');
-const Pathway = require('../models/database/pathway.js');
-
 const RepositoryManager = require('../managers/repository.js');
 const NetworkManager = require('../managers/network.js');
 const FileManager = require('../managers/file.js');

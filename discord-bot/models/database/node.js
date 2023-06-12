@@ -1,5 +1,4 @@
 const { DataTypes, Model } = require('sequelize');
-const Network = require('./network');
 
 class Node extends Model {}
 

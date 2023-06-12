@@ -1,9 +1,8 @@
-const { SlashCommandBuilder, ChannelType, PermissionsBitField, EmbedBuilder } = require('discord.js');
+const { ChannelType, PermissionsBitField, EmbedBuilder } = require('discord.js');
 
 const Sequelize = require('sequelize');
 const Colors = require('colors');
 const Ledger = require('../models/database/ledger.js');
-const Node = require('../models/database/node.js');
 
 const FileManager = require('../managers/file.js');
 const NodeManager = require('../managers/node.js');

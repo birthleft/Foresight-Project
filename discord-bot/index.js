@@ -14,9 +14,6 @@ Network.initialize(sequelize);
 const Node = require('./models/database/node.js');
 Node.initialize(sequelize);
 
-const Pathway = require('./models/database/pathway.js');
-Pathway.initialize(sequelize);
-
 // Import the Colors module, used to color console output.
 const Colors = require('colors');
 
@@ -26,7 +23,7 @@ Node.syncForced();
 Pathway.syncForced();
 
 // Require the necessary DiscordJS classes
-const { Collection, Events } = require('discord.js');
+const { Collection } = require('discord.js');
 
 // Create a new client instance
 const client = require('./config/client.js');
