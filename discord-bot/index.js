@@ -20,7 +20,6 @@ const Colors = require('colors');
 // Syncronize the models.
 Network.syncForced();
 Node.syncForced();
-Pathway.syncForced();
 
 // Require the necessary DiscordJS classes
 const { Collection } = require('discord.js');
