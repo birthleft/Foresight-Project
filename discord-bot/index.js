@@ -18,8 +18,8 @@ Node.initialize(sequelize);
 const Colors = require('colors');
 
 // Syncronize the models.
-Network.syncForced();
-Node.syncForced();
+Network.sync();
+Node.sync();
 
 // Require the necessary DiscordJS classes
 const { Collection } = require('discord.js');
