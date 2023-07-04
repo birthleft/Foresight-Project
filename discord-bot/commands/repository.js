@@ -140,7 +140,7 @@ module.exports = {
                 // We send a message.
                 await interaction.editReply(
                     { 
-                        content: `Attached the Repository category named \'${categoryName}\' to the server and a Shell channel named \'${channelName}\'.`, 
+                        content: `Attached the Repository category named \'${categoryName}\' to the server and a Shell channel named \'${channelName}\'. New Network created with the Snowflake \'${networkId}\'.`, 
                         ephemeral: true 
                     }
                 );
